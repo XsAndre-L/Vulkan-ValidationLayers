@@ -24,8 +24,6 @@ export const build = (cwd: string = process.cwd()): BuildType => {
     );
   }
 
-  // /d/Dev/codeframe-docs/CodeFramePackages/toolchains/llvm-mingw/bin/llvm-objdump.exe -f   /d/Dev/codeframe-docs/CodeFramePackages/lib-sources/vulkan/Vulkan-ValidationLayers/external/Windows/Release/aarch64/SPIRV-Tools/build/install/lib/libSPIRV-Tools.a   | grep -m1 -E 'architecture|file format'
-
   // Construct the path to your pkgconf.exe
   const PKG_CONFIG = join(
     CODE_FRAME,
