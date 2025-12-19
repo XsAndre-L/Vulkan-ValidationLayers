@@ -1,18 +1,36 @@
-import { BuildType, OUTPUT_DIR } from "../../../../src/types/package-config.ts";
-import { runPackageAction } from "../../../../src/commands/packages.ts";
+import {
+  BuildType,
+  CPP_OUTPUT_DIR,
+  runPackageAction,
+  CMAKE_TOOLS,
+  getHostSysrootPath,
+  SYSROOT,
+  BuildConfiguration,
+  LibraryInfo,
+} from "../../../../src/providers/package.provider.ts";
 
 import { resolve, join } from "node:path";
 import { argv, env } from "node:process";
 
+export const info: LibraryInfo = {
+  name: "vulkan-validation-layers",
+  outDir: "build",
+  version: "0.0.0",
+};
+
 export const build = (cwd: string = process.cwd()): BuildType => {
-  const TOOLCHAINS = resolve(cwd, "../../../toolchains/cmake-tools");
-  const LINUX = resolve(cwd, "../../../toolchains/linux");
-  const toolchain = resolve(cwd, "../../../toolchains/llvm-mingw");
-  const CLANG = join(toolchain, "bin/clang.exe").replace(/\\/g, "/");
-  const CLANGXX = join(toolchain, "bin/clang++.exe").replace(/\\/g, "/");
-  const WINDRES = join(toolchain, "bin/llvm-windres.exe").replace(/\\/g, "/");
+  const { windows_x86_64, windows_aarch64, linux_x86_64, linux_aarch64 } =
+    SYSROOT;
+
+  const HOST_SYSROOT = getHostSysrootPath();
+  const CLANG = join(HOST_SYSROOT, "bin/clang.exe").replace(/\\/g, "/");
+  const CLANGXX = join(HOST_SYSROOT, "bin/clang++.exe").replace(/\\/g, "/");
+  const WINDRES = join(HOST_SYSROOT, "bin/llvm-windres.exe").replace(
+    /\\/g,
+    "/"
+  );
   const AARCH64_WINDRES = join(
-    toolchain,
+    HOST_SYSROOT,
     "bin/aarch64-w64-mingw32-windres.exe"
   ).replace(/\\/g, "/");
 
@@ -25,16 +43,13 @@ export const build = (cwd: string = process.cwd()): BuildType => {
   }
 
   // Construct the path to your pkgconf.exe
-  const PKG_CONFIG = join(
-    CODE_FRAME,
-    "dependencies/cpp/clang/bin/pkgconf.exe"
-  ).replace(/\\/g, "/");
+  const PKG_CONFIG = join(HOST_SYSROOT, "bin/pkgconf.exe").replace(/\\/g, "/");
 
   return {
-    type: "architectures",
+    type: "compilation",
     windows_x86_64: {
       configStep: `cmake -S . -B build/windows/x86_64 -G Ninja \
-      -DCMAKE_TOOLCHAIN_FILE=${TOOLCHAINS}/windows_x86-64.cmake \
+      -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLS}/windows_x86-64.cmake \
       -DCMAKE_BUILD_TYPE=Release \
       -DBUILD_SHARED_LIBS=ON \
       -DUPDATE_DEPS=ON \
@@ -55,7 +70,7 @@ export const build = (cwd: string = process.cwd()): BuildType => {
         ${process.cwd()}/external/Windows/Release/x86_64/Vulkan-Headers/build/install;\
         ${process.cwd()}/external/Windows/Release/x86_64/glslang/build/install;\
         ${process.cwd()}/external/Windows/Release/x86_64/mimalloc/build/install \
-      -DCMAKE_INSTALL_PREFIX=../${OUTPUT_DIR}/vulkan-validation-layers/windows/x86_64
+      -DCMAKE_INSTALL_PREFIX=../${CPP_OUTPUT_DIR}/vulkan/vulkan-validation-layers/windows/x86_64
     `,
 
       buildStep: `cmake --build build/windows/x86_64 -j`,
@@ -63,7 +78,7 @@ export const build = (cwd: string = process.cwd()): BuildType => {
     },
     windows_aarch64: {
       configStep: `cmake -S . -B build/windows/aarch64 -G Ninja \
-      -DCMAKE_TOOLCHAIN_FILE=${TOOLCHAINS}/windows_aarch64.cmake \
+      -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLS}/windows_aarch64.cmake \
       -DCMAKE_BUILD_TYPE=Release \
       -DBUILD_SHARED_LIBS=OFF \
       -DUPDATE_DEPS=ON \
@@ -86,14 +101,14 @@ export const build = (cwd: string = process.cwd()): BuildType => {
         ${process.cwd()}/external/Windows/Release/aarch64/Vulkan-Headers/build/install;\
         ${process.cwd()}/external/Windows/Release/aarch64/glslang/build/install;\
         ${process.cwd()}/external/Windows/Release/aarch64/mimalloc/build/install \
-      -DCMAKE_INSTALL_PREFIX=../${OUTPUT_DIR}/vulkan-validation-layers/windows/aarch64
+      -DCMAKE_INSTALL_PREFIX=../${CPP_OUTPUT_DIR}/vulkan/vulkan-validation-layers/windows/aarch64
       `,
       buildStep: `cmake --build build/windows/aarch64 -j`,
       installStep: `cmake --install build/windows/aarch64`,
     },
     linux_x86_64: {
       configStep: `cmake -S . -B build/linux/x86_64 -G Ninja \
-      -DCMAKE_TOOLCHAIN_FILE=${TOOLCHAINS}/linux_x86-64.cmake \
+      -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLS}/linux_x86-64.cmake \
       -DCMAKE_BUILD_TYPE=Release \
       -DBUILD_SHARED_LIBS=OFF \
       -DUPDATE_DEPS=OFF \
@@ -123,14 +138,14 @@ export const build = (cwd: string = process.cwd()): BuildType => {
         ${process.cwd()}/external/Linux/Release/x86_64/Vulkan-Headers/build/install;\
         ${process.cwd()}/external/Linux/Release/x86_64/glslang/build/install;\
         ${process.cwd()}/external/Linux/Release/x86_64/mimalloc/build/install \
-      -DCMAKE_INSTALL_PREFIX=../${OUTPUT_DIR}/vulkan-validation-layers/linux/x86_64,
+      -DCMAKE_INSTALL_PREFIX=../${CPP_OUTPUT_DIR}/vulkan/vulkan-validation-layers/linux/x86_64,
       `,
       buildStep: `cmake --build build/linux/x86_64 -j`,
       installStep: `cmake --install build/linux/x86_64`,
     },
     linux_aarch64: {
       configStep: `cmake -S . -B build/linux/aarch64 -G Ninja \
-      -DCMAKE_TOOLCHAIN_FILE=${TOOLCHAINS}/linux_aarch64.cmake \
+      -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLS}/linux_aarch64.cmake \
       -DCMAKE_BUILD_TYPE=Release \
       -DBUILD_SHARED_LIBS=OFF \
       -DUPDATE_DEPS=OFF \
@@ -161,7 +176,7 @@ export const build = (cwd: string = process.cwd()): BuildType => {
         ${process.cwd()}/external/Linux/Release/aarch64/Vulkan-Headers/build/install;\
         ${process.cwd()}/external/Linux/Release/aarch64/glslang/build/install;\
         ${process.cwd()}/external/Linux/Release/aarch64/mimalloc/build/install \
-      -DCMAKE_INSTALL_PREFIX=../${OUTPUT_DIR}/vulkan-validation-layers/linux/aarch64
+      -DCMAKE_INSTALL_PREFIX=../${CPP_OUTPUT_DIR}/vulkan/vulkan-validation-layers/linux/aarch64
       `,
       buildStep: `cmake --build build/linux/aarch64 -j`,
       installStep: `cmake --install build/linux/aarch64`,
@@ -172,4 +187,9 @@ export const build = (cwd: string = process.cwd()): BuildType => {
 const args = argv.slice(2);
 const [action = "help"] = args;
 
-await runPackageAction(action, process.cwd(), build());
+const buildConfig: BuildConfiguration = {
+  info,
+  build: build(),
+};
+
+await runPackageAction(action, process.cwd(), buildConfig);
